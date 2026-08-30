@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LEAR • Suivi Planning</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#12151a;
+    --panel:#1a1e25;
+    --panel2:#20252e;
+    --line:#2b313c;
+    --text:#eef0f3;
+    --sub:#8b93a3;
+    --amber:#e8a33d;
+    --amber-dim:#7a5a2a;
+    --blue:#4a90d9;
+    --green:#3ecf8e;
+    --red:#e8583d;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,sans-serif; overscroll-behavior:none;}
+  #app{display:flex; flex-direction:column; height:100vh; height:100dvh;}
+
+  header{
+    padding:14px 16px 10px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, #171a20, #12151a);
+    flex-shrink:0;
+  }
+  .brand{display:flex; align-items:center; justify-content:space-between;}
+  .brand-title{font-weight:800; font-size:15px; letter-spacing:.04em;}
+  .brand-title span{color:var(--amber);}
+  .brand-sub{font-size:11px; color:var(--sub); font-family:'JetBrains Mono',monospace; margin-top:2px;}
+  .reset-btn{background:none;border:1px solid var(--line);color:var(--sub);font-size:11px;
+    padding:6px 10px;border-radius:8px;}
+
+  main{flex:1; overflow-y:auto; padding:14px 14px 90px;}
+  nav.tabs{
+    position:fixed; bottom:0; left:0; right:0; display:flex;
+    background:#161a20; border-top:1px solid var(--line); z-index:50;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav.tabs button{
+    flex:1; background:none; border:none; color:var(--sub); padding:10px 2px 8px;
+    font-size:10.5px; font-family:'Inter'; display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav.tabs button .ic{font-size:18px; line-height:1;}
+  nav.tabs button.active{color:var(--amber);}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:var(--shadow);}
+  .card h2{margin:0 0 4px; font-size:14px; letter-spacing:.03em; text-transform:uppercase; color:var(--amber);}
+  .card p.hint{margin:0 0 12px; font-size:12.5px; color:var(--sub); line-height:1.5;}
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:14px; border-radius:11px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--text); font-size:14.5px; font-weight:600;
+    margin-bottom:10px;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.primary{background:var(--amber); color:#1a1200; border-color:var(--amber);}
+  .btn.blue{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .btn.ghost{background:none;}
+  .btn.danger{background:none; color:var(--red); border-color:var(--red);}
+  .btn.small{padding:9px 12px; font-size:12.5px; width:auto;}
+
+  input[type=text], input[type=number], select{
+    width:100%; padding:13px 12px; border-radius:10px; border:1px solid var(--line);
+    background:#0f1216; color:var(--text); font-size:15px; margin-bottom:10px; font-family:'JetBrains Mono',monospace;
+  }
+  label{font-size:11.5px; color:var(--sub); display:block; margin:0 0 6px; text-transform:uppercase; letter-spacing:.03em;}
+  select{font-family:'Inter'; -webkit-appearance:none; appearance:none;}
+
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+
+  .status-line{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--panel2); border-radius:10px; padding:12px; margin-bottom:10px; border-left:4px solid var(--line);}
+  .status-line.closed{border-color:var(--green);}
+  .status-line.progress{border-color:var(--amber);}
+  .status-line.open{border-color:var(--sub);}
+  .status-line .pn{font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text); word-break:break-all;}
+  .status-line .qty{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; white-space:nowrap;}
+  .badge{font-size:10px; padding:3px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em; font-weight:700;}
+  .badge.closed{background:rgba(62,207,142,.15); color:var(--green);}
+  .badge.progress{background:rgba(232,163,61,.15); color:var(--amber);}
+  .badge.open{background:rgba(139,147,163,.15); color:var(--sub);}
+  .badge.noplan{background:rgba(74,144,217,.15); color:var(--blue);}
+  .status-line.noplan{border-color:var(--blue);}
+  .drill-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--panel2); border-radius:10px; padding:13px 14px; margin-bottom:8px; border:1px solid var(--line);}
+  .drill-row .t{font-weight:700; font-size:13.5px;}
+  .drill-row .s{font-size:11px; color:var(--sub); margin-top:2px;}
+  .drill-row .arrow{color:var(--sub); font-size:16px;}
+  .back-link{display:inline-flex; align-items:center; gap:6px; color:var(--amber); font-size:12.5px; font-weight:600; margin-bottom:10px; background:none; border:none; padding:0;}
+
+  .empty{text-align:center; padding:40px 16px; color:var(--sub);}
+  .empty .ic{font-size:34px; margin-bottom:10px; opacity:.6;}
+
+  .search{position:relative; margin-bottom:12px;}
+  .list-item{display:flex; justify-content:space-between; align-items:center; padding:12px 4px; border-bottom:1px solid var(--line); gap:10px;}
+  .list-item:last-child{border-bottom:none;}
+  .list-item .meta{min-width:0;}
+  .list-item .meta .pn{font-family:'JetBrains Mono',monospace; font-size:12.5px; word-break:break-all;}
+  .list-item .meta .sub{font-size:11px; color:var(--sub); margin-top:2px;}
+  .toggle{width:44px; height:26px; border-radius:20px; background:var(--line); position:relative; flex-shrink:0; border:none;}
+  .toggle.on{background:var(--amber);}
+  .toggle .dot{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s;}
+  .toggle.on .dot{left:21px;}
+
+  .kpi-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;}
+  .kpi{background:var(--panel2); border-radius:12px; padding:12px 8px; text-align:center; border:1px solid var(--line);}
+  .kpi .n{font-size:22px; font-weight:800; font-family:'JetBrains Mono',monospace;}
+  .kpi .l{font-size:9.5px; color:var(--sub); text-transform:uppercase; letter-spacing:.03em; margin-top:2px;}
+  .kpi.closed .n{color:var(--green);} .kpi.progress .n{color:var(--amber);} .kpi.open .n{color:var(--sub);}
+
+  .bar-row{margin-bottom:14px;}
+  .bar-row .lbl{display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;}
+  .bar-track{height:10px; border-radius:6px; background:var(--panel2); overflow:hidden; display:flex;}
+  .bar-seg.closed{background:var(--green);}
+  .bar-seg.progress{background:var(--amber);}
+  .bar-seg.open{background:var(--line);}
+
+  #scanner-modal{position:fixed; inset:0; background:#000; z-index:200; display:none; flex-direction:column;}
+  #scanner-modal.show{display:flex;}
+  #reader{flex:1; width:100%;}
+  .scan-close{position:absolute; top:calc(env(safe-area-inset-top) + 14px); right:14px; z-index:210;
+    background:rgba(20,20,20,.7); color:#fff; border:1px solid rgba(255,255,255,.2); border-radius:50%;
+    width:38px; height:38px; font-size:16px;}
+  .scan-hint{position:absolute; bottom:24px; left:0; right:0; text-align:center; color:#fff; font-size:12.5px; opacity:.85;}
+
+  .toast{position:fixed; bottom:80px; left:16px; right:16px; background:var(--panel2); border:1px solid var(--line);
+    border-radius:12px; padding:12px 14px; font-size:13px; box-shadow:var(--shadow); z-index:150;
+    opacity:0; transform:translateY(10px); transition:.25s; pointer-events:none;}
+  .toast.show{opacity:1; transform:translateY(0);}
+  .toast.ok{border-color:var(--green);}
+  .toast.err{border-color:var(--red);}
+
+  .segmented{display:flex; background:var(--panel2); border-radius:10px; padding:3px; margin-bottom:12px; border:1px solid var(--line);}
+  .segmented button{flex:1; padding:8px; border:none; background:none; color:var(--sub); font-size:12.5px; border-radius:8px; font-weight:600;}
+  .segmented button.active{background:var(--amber); color:#1a1200;}
+
+  .file-drop{border:1.5px dashed var(--line); border-radius:12px; padding:22px 14px; text-align:center; color:var(--sub); font-size:12.5px; margin-bottom:10px;}
+  .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div>
+        <div class="brand-title">LEAR <span>•</span> SUIVI PLANNING</div>
+        <div class="brand-sub" id="meta-line">Aucun planning importé</div>
+      </div>
+      <button class="reset-btn" id="reset-btn">Réinitialiser</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+  <nav class="tabs">
+    <button data-tab="import" class="active"><span class="ic">⇪</span>Import</button>
+    <button data-tab="scan"><span class="ic">▤</span>Scanner</button>
+    <button data-tab="etat"><span class="ic">▦</span>État</button>
+    <button data-tab="prod"><span class="ic">⚙</span>Prod</button>
+    <button data-tab="export"><span class="ic">↗</span>Export</button>
+    <button data-tab="dash"><span class="ic">◔</span>Dashboard</button>
+  </nav>
+</div>
+
+<div id="scanner-modal">
+  <button class="scan-close" id="scan-close">✕</button>
+  <div id="reader"></div>
+  <div class="scan-hint" id="scan-hint">Placez le code-barres dans le cadre</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+/* ===================== STATE ===================== */
+const STORAGE_KEY = 'lear-planning-state';
+let state = { meta:{}, items:{} };
+let scannerActive = null; // html5Qrcode instance
+let scanTarget = null; // callback for current scan session
+
+function emptyState(){ return { meta:{}, items:{} }; }
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){ state = JSON.parse(res.value); }
+    else { state = emptyState(); }
+  }catch(e){ state = emptyState(); }
+  renderMeta();
+}
+async function saveState(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
+  catch(e){ toast('Erreur de sauvegarde', 'err'); }
+}
+
+function toast(msg, kind){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (kind ? ' '+kind : '');
+  clearTimeout(t._h);
+  t._h = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+/* ===================== HELPERS ===================== */
+function normPn(s){ return (s||'').toString().trim().toUpperCase(); }
+function statusOf(it, metric){
+  metric = metric || 'delivered';
+  const val = Number(it[metric])||0;
+  if(!it.planningQty || it.planningQty<=0) return 'noplan';
+  if(val <= 0) return 'open';
+  if(val >= it.planningQty) return 'closed';
+  return 'progress';
+}
+function statusLabel(s){
+  return s==='closed' ? 'Fermé' : s==='progress' ? 'En cours' : s==='noplan' ? 'Hors planning' : 'Ouvert';
+}
+function itemsArr(){ return Object.values(state.items); }
+function shiftsList(){
+  const s = new Set(itemsArr().map(i=>i.shift));
+  return Array.from(s).sort();
+}
+
+function renderMeta(){
+  const el = document.getElementById('meta-line');
+  const n = itemsArr().length;
+  if(!n){ el.textContent = 'Aucun planning importé'; return; }
+  el.textContent = `${state.meta.fileName || 'Planning'} • ${n} PN • importé ${state.meta.importedAt ? new Date(state.meta.importedAt).toLocaleString('fr-FR') : ''}`;
+}
+
+/* ===================== EXCEL IMPORT ===================== */
+function findHeaderRow(rows, mustHave){
+  for(let r=0; r<Math.min(rows.length, 15); r++){
+    const row = (rows[r]||[]).map(c=> (c===undefined||c===null)?'':c.toString().trim().toUpperCase());
+    if(mustHave.every(h => row.some(c => c === h))) return { idx:r, headers:row };
+  }
+  return null;
+}
+function colIdx(headers, name){ return headers.indexOf(name); }
+
+function parseFront(rows, items){
+  const h = findHeaderRow(rows, ['LEAR PN','PLANNING']);
+  if(!h) return 0;
+  const iPn = colIdx(h.headers,'LEAR PN');
+  const iComm = colIdx(h.headers,'COMM');
+  const iPlan = colIdx(h.headers,'PLANNING');
+  const iShift = colIdx(h.headers,'SHIFT');
+  let count=0;
+  for(let r=h.idx+1; r<rows.length; r++){
+    const row = rows[r]; if(!row) continue;
+    const pn = normPn(row[iPn]);
+    if(!pn) continue;
+    const plan = Number(row[iPlan]) || 0;
+    const shift = (row[iShift]||'').toString().trim().toUpperCase() || 'SANS SHIFT';
+    if(plan<=0) continue;
+    const id = pn+'__'+shift;
+    const existing = items[id];
+    items[id] = {
+      id, pn, family: (row[iComm]||'').toString().trim(), description:'',
+      shift, sheetType:'FRONT', planningQty: plan,
+      delivered: existing?existing.delivered:0, exported: existing?existing.exported:false,
+      scans: existing?existing.scans:[], produced: existing?existing.produced:0
+    };
+    count++;
+  }
+  return count;
+}
+
+function parseRear(rows, items){
+  const h = findHeaderRow(rows, ['PN','DESCRIPTION']);
+  if(!h) return 0;
+  const iPn = colIdx(h.headers,'PN');
+  const iDesc = colIdx(h.headers,'DESCRIPTION');
+  const iCom = colIdx(h.headers,'COM');
+  const shiftCols = [['SHIFT 1','SHIFT 1'],['SHIFT 2','SHIFT 2'],['SHIFT 3','SHIFT 3']];
+  let count=0;
+  for(let r=h.idx+1; r<rows.length; r++){
+    const row = rows[r]; if(!row) continue;
+    const pn = normPn(row[iPn]);
+    if(!pn) continue;
+    for(const [label,colName] of shiftCols){
+      const iCol = colIdx(h.headers,colName);
+      if(iCol<0) continue;
+      const plan = Number(row[iCol]) || 0;
+      if(plan<=0) continue;
+      const id = pn+'__'+label;
+      const existing = items[id];
+      items[id] = {
+        id, pn, family: (row[iCom]||'').toString().trim(), description:(row[iDesc]||'').toString().trim(),
+        shift: label, sheetType:'REAR', planningQty: plan,
+        delivered: existing?existing.delivered:0, exported: existing?existing.exported:false,
+        scans: existing?existing.scans:[], produced: existing?existing.produced:0
+      };
+      count++;
+    }
+  }
+  return count;
+}
+
+/* ---- Production report import (état prod) ---- */
+function normShiftVal(v){
+  let s = (v||'').toString().trim().toUpperCase();
+  if(!s) return '';
+  if(/^\d+$/.test(s)) return 'SHIFT '+s;          // "1" -> "SHIFT 1"
+  if(!s.startsWith('SHIFT')) s = 'SHIFT '+s;       // "S1" etc fallback
+  return s;
+}
+function parseProd(rows, items, touched){
+  const pnTokens = ['PN','PART NUMBER','LEAR PN','PARTNUMBER','PARTE NUMBER'];
+  const commTokens = ['COMM','COM','FAMILLE','FAMILY'];
+  const shiftTokens = ['SHIFT'];
+  const qtyTokens = ['QTE PRODUITE','QUANTITE PRODUITE','QTE PROD','PRODUCTION','QTE OK','OK QTY','QTE','QUANTITE','QUANTITY','PRODUIT','PRODUCED'];
+  let header=null;
+  for(let r=0;r<Math.min(rows.length,15);r++){
+    const row=(rows[r]||[]).map(c=>(c===undefined||c===null)?'':c.toString().trim().toUpperCase());
+    const hasPn = pnTokens.some(t=>row.includes(t));
+    const hasQty = qtyTokens.some(t=>row.includes(t));
+    if(hasPn && hasQty){ header={idx:r, headers:row}; break; }
+  }
+  if(!header) return 0;
+  const iPn = header.headers.findIndex(h=>pnTokens.includes(h));
+  const iComm = header.headers.findIndex(h=>commTokens.includes(h));
+  const iShift = header.headers.findIndex(h=>shiftTokens.includes(h));
+  const iQty = header.headers.findIndex(h=>qtyTokens.includes(h));
+  let count=0;
+  for(let r=header.idx+1; r<rows.length; r++){
+    const row = rows[r]; if(!row) continue;
+    const pn = normPn(row[iPn]); if(!pn) continue;
+    const qty = Number(row[iQty])||0;
+    let shift = iShift>=0 ? normShiftVal(row[iShift]) : '';
+    if(!shift) shift = 'SANS SHIFT';
+    const comm = iComm>=0 ? (row[iComm]||'').toString().trim() : '';
+    const id = pn+'__'+shift;
+    let item = items[id];
+    if(!item){
+      item = { id, pn, family:comm, description:'', shift, sheetType:'PROD',
+        planningQty:0, delivered:0, exported:false, scans:[], produced:0 };
+      items[id] = item;
+    }
+    if(comm && !item.family) item.family = comm;
+    if(!touched.has(id)){ item.produced = qty; touched.add(id); }
+    else { item.produced = (item.produced||0) + qty; }
+    count++;
+  }
+  return count;
+}
+function handleWorkbookProd(wb, fileName){
+  const items = { ...state.items };
+  const touched = new Set();
+  let total = 0;
+  wb.SheetNames.forEach(name=>{
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+    total += parseProd(rows, items, touched);
+  });
+  state.items = items;
+  state.prodMeta = { fileName, importedAt: Date.now() };
+  saveState();
+  return total;
+}
+
+function handleWorkbook(wb, fileName){
+  const items = { ...state.items };
+  let total = 0;
+  wb.SheetNames.forEach(name=>{
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+    const up = name.trim().toUpperCase();
+    if(up.includes('FRONT')) total += parseFront(rows, items);
+    else if(up.includes('REAR')) total += parseRear(rows, items);
+    else {
+      // try generic: attempt front-style then rear-style parsing on unknown sheet
+      total += parseFront(rows, items) || parseRear(rows, items);
+    }
+  });
+  state.items = items;
+  state.meta = { fileName, importedAt: Date.now() };
+  saveState();
+  renderMeta();
+  return total;
+}
+
+/* ===================== SCANNER (camera) ===================== */
+function openScanner(hint, onResult){
+  const modal = document.getElementById('scanner-modal');
+  document.getElementById('scan-hint').textContent = hint;
+  modal.classList.add('show');
+  scanTarget = onResult;
+  const readerId = 'reader';
+  if(typeof Html5Qrcode === 'undefined'){
+    toast('Scanner caméra indisponible — saisie manuelle', 'err');
+    closeScanner();
+    return;
+  }
+  scannerActive = new Html5Qrcode(readerId, { verbose:false });
+  const config = { fps:12, qrbox:{ width:280, height:130 } };
+  scannerActive.start({ facingMode:'environment' }, config,
+    (decodedText)=>{
+      if(navigator.vibrate) navigator.vibrate(60);
+      const cb = scanTarget;
+      closeScanner();
+      if(cb) cb(decodedText.trim());
+    },
+    ()=>{ /* ignore per-frame errors */ }
+  ).catch(err=>{
+    toast('Caméra indisponible: ' + (err && err.message ? err.message : 'accès refusé'), 'err');
+    closeScanner();
+  });
+}
+function closeScanner(){
+  const modal = document.getElementById('scanner-modal');
+  modal.classList.remove('show');
+  if(scannerActive){
+    scannerActive.stop().then(()=>scannerActive.clear()).catch(()=>{});
+    scannerActive = null;
+  }
+}
+document.getElementById('scan-close').addEventListener('click', closeScanner);
+
+/* ===================== TABS / ROUTER ===================== */
+const main = document.getElementById('main');
+let currentTab = 'import';
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    render();
+  });
+});
+document.getElementById('reset-btn').addEventListener('click', async ()=>{
+  if(!confirm('Effacer tout le planning et les scans enregistrés ?')) return;
+  state = emptyState();
+  await saveState();
+  renderMeta();
+  render();
+});
+
+function render(){
+  if(currentTab==='import') return renderImport();
+  if(currentTab==='scan') return renderScan();
+  if(currentTab==='etat') return renderEtat();
+  if(currentTab==='prod') return renderProd();
+  if(currentTab==='export') return renderExport();
+  if(currentTab==='dash') return renderDash();
+}
+
+/* ---------- IMPORT TAB ---------- */
+function renderImport(){
+  main.innerHTML = `
+    <div class="card">
+      <h2>Importer le planning</h2>
+      <p class="hint">Fichier Excel avec feuilles <b>FRONT</b> et/ou <b>REAR</b> (comme Planning_Front_Rear). Les colonnes LEAR PN / PLANNING / SHIFT (FRONT) et PN / DESCRIPTION / SHIFT 1-2-3 (REAR) sont détectées automatiquement.</p>
+      <div class="file-drop" id="drop">📄 Toucher pour choisir le fichier .xlsx</div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
+      <div id="import-status"></div>
+    </div>
+    <div class="card">
+      <h2>Planning actuel</h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="n">${itemsArr().length}</div><div class="l">PN chargés</div></div>
+        <div class="kpi"><div class="n">${shiftsList().length}</div><div class="l">Shifts</div></div>
+        <div class="kpi"><div class="n">${itemsArr().reduce((a,i)=>a+i.planningQty,0)}</div><div class="l">Qté planifiée</div></div>
+      </div>
+      <p class="hint">${itemsArr().length ? 'Un nouvel import met à jour les quantités planifiées sans effacer les quantités déjà scannées pour les PN déjà connus.' : 'Aucune donnée. Importez un fichier pour commencer.'}</p>
+    </div>
+  `;
+  const drop = document.getElementById('drop');
+  const input = document.getElementById('file-input');
+  drop.addEventListener('click', ()=>input.click());
+  input.addEventListener('change', async (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    document.getElementById('import-status').innerHTML = `<div class="hint" style="display:flex;gap:8px;align-items:center"><div class="spin"></div> Import en cours…</div>`;
+    try{
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type:'array' });
+      const n = handleWorkbook(wb, f.name);
+      toast(`${n} lignes de planning importées`, 'ok');
+      renderImport();
+    }catch(err){
+      toast('Erreur de lecture du fichier: '+err.message, 'err');
+      document.getElementById('import-status').innerHTML = '';
+    }
+  });
+}
+
+/* ---------- SCAN TAB ---------- */
+let scanState = { pn:null, item:null, qty:'' };
+
+function findCandidates(pn){
+  return itemsArr().filter(i=>i.pn===pn);
+}
+
+function renderScan(){
+  const cands = scanState.pn ? findCandidates(scanState.pn) : [];
+  main.innerHTML = `
+    <div class="card">
+      <h2>1 · Scanner le Part Number</h2>
+      <p class="hint">Scannez le code-barres "Parte Number" de la gamme technique, ou saisissez-le manuellement.</p>
+      <button class="btn blue" id="scan-pn-btn">📷 Scanner code-barres PN</button>
+      <input type="text" id="pn-manual" placeholder="ou saisir le Part Number…" value="${scanState.pn||''}">
+    </div>
+    ${scanState.pn ? renderScanMatch(cands) : ''}
+  `;
+  document.getElementById('scan-pn-btn').addEventListener('click', ()=>{
+    openScanner('Scannez le code Part Number', (text)=>{
+      scanState.pn = normPn(text);
+      scanState.item = null;
+      renderScan();
+    });
+  });
+  const manual = document.getElementById('pn-manual');
+  manual.addEventListener('change', ()=>{
+    scanState.pn = normPn(manual.value);
+    scanState.item = null;
+    renderScan();
+  });
+}
+
+function renderScanMatch(cands){
+  if(cands.length===0){
+    return `<div class="card">
+      <h2 style="color:var(--red)">PN introuvable</h2>
+      <p class="hint">Ce Part Number n'est pas dans le planning importé. Vérifiez le scan ou importez le bon fichier planning.</p>
+      <button class="btn ghost" id="clear-pn">Effacer</button>
+    </div>` + attachClear();
+  }
+  let pick = '';
+  if(cands.length>1 && !scanState.item){
+    pick = `<div class="card">
+      <h2>Plusieurs shifts trouvés</h2>
+      <p class="hint">Ce PN est planifié sur plusieurs shifts. Choisissez le bon.</p>
+      ${cands.map(c=>`<button class="btn ghost pick-shift" data-id="${c.id}">${c.shift} — ${c.delivered}/${c.planningQty}</button>`).join('')}
+    </div>`;
+  }
+  const item = scanState.item || (cands.length===1 ? cands[0] : null);
+  if(item) scanState.item = item;
+
+  let qtyBlock = '';
+  if(item){
+    const st = statusOf(item);
+    qtyBlock = `
+    <div class="card">
+      <h2>2 · Quantité livrée (magasin)</h2>
+      <div class="status-line ${st}">
+        <div>
+          <div class="pn">${item.pn}</div>
+          <div style="font-size:11px;color:var(--sub);margin-top:2px">${item.shift} • ${item.family||''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="qty">${item.delivered}/${item.planningQty}</div>
+          <span class="badge ${st}">${statusLabel(st)}</span>
+        </div>
+      </div>
+      <button class="btn blue" id="scan-qty-btn">📷 Scanner code-barres Quantité</button>
+      <input type="number" inputmode="numeric" id="qty-manual" placeholder="ou saisir la quantité livrée…" value="${scanState.qty}">
+      <button class="btn primary" id="validate-btn">✓ Valider la livraison</button>
+      <button class="btn ghost" id="clear-pn">Nouveau scan</button>
+    </div>`;
+  }
+  return pick + qtyBlock + (item ? '' : attachClear());
+}
+function attachClear(){ return ''; }
+
+function bindScanEvents(){
+  const pickBtns = document.querySelectorAll('.pick-shift');
+  pickBtns.forEach(b=> b.addEventListener('click', ()=>{
+    scanState.item = state.items[b.dataset.id];
+    renderScan(); bindScanEvents();
+  }));
+  const clearBtn = document.getElementById('clear-pn');
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{
+    scanState = { pn:null, item:null, qty:'' };
+    renderScan(); bindScanEvents();
+  });
+  const scanQtyBtn = document.getElementById('scan-qty-btn');
+  if(scanQtyBtn) scanQtyBtn.addEventListener('click', ()=>{
+    openScanner('Scannez le code-barres Quantité', (text)=>{
+      const n = parseInt(text.replace(/[^0-9]/g,''),10);
+      scanState.qty = isNaN(n) ? '' : String(n);
+      renderScan(); bindScanEvents();
+    });
+  });
+  const qtyManual = document.getElementById('qty-manual');
+  if(qtyManual) qtyManual.addEventListener('input', ()=>{ scanState.qty = qtyManual.value; });
+  const validateBtn = document.getElementById('validate-btn');
+  if(validateBtn) validateBtn.addEventListener('click', async ()=>{
+    const q = parseInt(scanState.qty,10);
+    if(!q || q<=0){ toast('Saisissez une quantité valide', 'err'); return; }
+    const item = scanState.item;
+    item.delivered += q;
+    item.scans.push({ qty:q, ts: Date.now() });
+    await saveState();
+    toast(`${item.pn}: ${item.delivered}/${item.planningQty} livré`, 'ok');
+    scanState = { pn:null, item:null, qty:'' };
+    renderScan(); bindScanEvents();
+  });
+}
+
+const origRenderScan = renderScan;
+renderScan = function(){ origRenderScan(); bindScanEvents(); };
+
+/* ---------- ETAT (état magasin) TAB ---------- */
+let etatFilter = { shift:'ALL', status:'ALL', q:'' };
+function renderEtat(){
+  const shifts = shiftsList();
+  let list = itemsArr();
+  if(etatFilter.shift!=='ALL') list = list.filter(i=>i.shift===etatFilter.shift);
+  if(etatFilter.status!=='ALL') list = list.filter(i=>statusOf(i)===etatFilter.status);
+  if(etatFilter.q) list = list.filter(i=> i.pn.includes(etatFilter.q.toUpperCase()));
+  list = list.sort((a,b)=> a.pn.localeCompare(b.pn));
+
+  main.innerHTML = `
+    <div class="card">
+      <h2>État Magasin</h2>
+      <p class="hint">Suivi livré / planifié pour chaque part number.</p>
+      <input type="text" id="etat-search" placeholder="Rechercher un Part Number…" value="${etatFilter.q}">
+      <div class="row">
+        <select id="etat-shift">
+          <option value="ALL">Tous les shifts</option>
+          ${shifts.map(s=>`<option value="${s}" ${etatFilter.shift===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <select id="etat-status">
+          <option value="ALL">Tous statuts</option>
+          <option value="open" ${etatFilter.status==='open'?'selected':''}>Ouvert</option>
+          <option value="progress" ${etatFilter.status==='progress'?'selected':''}>En cours</option>
+          <option value="closed" ${etatFilter.status==='closed'?'selected':''}>Fermé</option>
+        </select>
+      </div>
+    </div>
+    <div class="card" style="padding:8px 12px">
+      ${list.length ? list.map(i=>{
+        const st = statusOf(i);
+        return `<div class="status-line ${st}" style="margin-bottom:8px">
+          <div>
+            <div class="pn">${i.pn}</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px">${i.shift} • ${i.family||''}${i.exported?' • ↗ export':''}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="qty">${i.delivered}/${i.planningQty}</div>
+            <span class="badge ${st}">${statusLabel(st)}</span>
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty"><div class="ic">▦</div>Aucun résultat</div>`}
+    </div>
+  `;
+  document.getElementById('etat-search').addEventListener('input', (e)=>{ etatFilter.q = e.target.value; renderEtat(); });
+  document.getElementById('etat-shift').addEventListener('change', (e)=>{ etatFilter.shift = e.target.value; renderEtat(); });
+  document.getElementById('etat-status').addEventListener('change', (e)=>{ etatFilter.status = e.target.value; renderEtat(); });
+  // restore focus to search after re-render if user was typing
+}
+
+/* ---------- ÉTAT PROD TAB ---------- */
+let prodFilter = { shift:'ALL', comm:'ALL', status:'ALL', q:'' };
+function commsList(){
+  const s = new Set(itemsArr().map(i=>i.family).filter(Boolean));
+  return Array.from(s).sort();
+}
+function renderProd(){
+  const shifts = shiftsList();
+  const comms = commsList();
+  let list = itemsArr();
+  if(prodFilter.shift!=='ALL') list = list.filter(i=>i.shift===prodFilter.shift);
+  if(prodFilter.comm!=='ALL') list = list.filter(i=>i.family===prodFilter.comm);
+  if(prodFilter.status!=='ALL') list = list.filter(i=>statusOf(i,'produced')===prodFilter.status);
+  if(prodFilter.q) list = list.filter(i=> i.pn.includes(prodFilter.q.toUpperCase()));
+  list = list.sort((a,b)=> a.pn.localeCompare(b.pn));
+
+  main.innerHTML = `
+    <div class="card">
+      <h2>Importer la quantité produite</h2>
+      <p class="hint">Fichier Excel avec PN, COMM, SHIFT et quantité produite (colonnes détectées automatiquement). Réimporter met à jour les quantités produites.</p>
+      <div class="file-drop" id="prod-drop">📄 Toucher pour choisir le fichier .xlsx</div>
+      <input type="file" id="prod-file-input" accept=".xlsx,.xls,.csv" style="display:none">
+      <p class="hint" style="margin:8px 0 0">${state.prodMeta ? `${state.prodMeta.fileName} • importé ${new Date(state.prodMeta.importedAt).toLocaleString('fr-FR')}` : "Aucun fichier de production importé."}</p>
+    </div>
+    <div class="card">
+      <h2>État Prod</h2>
+      <p class="hint">Quantité produite / planifiée, par Part Number, par famille (COMM), par shift.</p>
+      <input type="text" id="prod-search" placeholder="Rechercher un Part Number…" value="${prodFilter.q}">
+      <div class="row">
+        <select id="prod-shift">
+          <option value="ALL">Tous les shifts</option>
+          ${shifts.map(s=>`<option value="${s}" ${prodFilter.shift===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <select id="prod-comm">
+          <option value="ALL">Toutes les COMM</option>
+          ${comms.map(c=>`<option value="${c}" ${prodFilter.comm===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <select id="prod-status">
+        <option value="ALL">Tous statuts</option>
+        <option value="open" ${prodFilter.status==='open'?'selected':''}>Ouvert</option>
+        <option value="progress" ${prodFilter.status==='progress'?'selected':''}>En cours</option>
+        <option value="closed" ${prodFilter.status==='closed'?'selected':''}>Fermé</option>
+        <option value="noplan" ${prodFilter.status==='noplan'?'selected':''}>Hors planning</option>
+      </select>
+    </div>
+    <div class="card" style="padding:8px 12px">
+      ${list.length ? list.map(i=>{
+        const st = statusOf(i,'produced');
+        return `<div class="status-line ${st}" style="margin-bottom:8px">
+          <div>
+            <div class="pn">${i.pn}</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px">${i.shift} • ${i.family||'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="qty">${i.produced||0}${i.planningQty?'/'+i.planningQty:''}</div>
+            <span class="badge ${st}">${statusLabel(st)}</span>
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty"><div class="ic">⚙</div>Aucun résultat</div>`}
+    </div>
+  `;
+  document.getElementById('prod-drop').addEventListener('click', ()=>document.getElementById('prod-file-input').click());
+  document.getElementById('prod-file-input').addEventListener('change', async (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    try{
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type:'array' });
+      const n = handleWorkbookProd(wb, f.name);
+      toast(n ? `${n} lignes de production importées` : "Aucune colonne PN/quantité reconnue dans ce fichier", n?'ok':'err');
+      renderProd();
+    }catch(err){ toast('Erreur de lecture: '+err.message, 'err'); }
+  });
+  document.getElementById('prod-search').addEventListener('input', (e)=>{ prodFilter.q = e.target.value; renderProd(); });
+  document.getElementById('prod-shift').addEventListener('change', (e)=>{ prodFilter.shift = e.target.value; renderProd(); });
+  document.getElementById('prod-comm').addEventListener('change', (e)=>{ prodFilter.comm = e.target.value; renderProd(); });
+  document.getElementById('prod-status').addEventListener('change', (e)=>{ prodFilter.status = e.target.value; renderProd(); });
+}
+
+/* ---------- EXPORT TAB ---------- */
+let exportView = 'mark'; // 'mark' | 'list'
+let exportSearch = '';
+function renderExport(){
+  main.innerHTML = `
+    <div class="segmented">
+      <button data-v="mark" class="${exportView==='mark'?'active':''}">Marquer export</button>
+      <button data-v="list" class="${exportView==='list'?'active':''}">Liste export</button>
+    </div>
+    <div id="export-body"></div>
+  `;
+  document.querySelectorAll('.segmented button').forEach(b=> b.addEventListener('click', ()=>{
+    exportView = b.dataset.v; renderExport();
+  }));
+  const body = document.getElementById('export-body');
+  if(exportView==='mark'){
+    const list = itemsArr().filter(i=> i.pn.includes(exportSearch.toUpperCase())).sort((a,b)=>a.pn.localeCompare(b.pn));
+    body.innerHTML = `<div class="card">
+      <h2>Marquer les PN à exporter</h2>
+      <input type="text" id="exp-search" placeholder="Rechercher un Part Number…" value="${exportSearch}">
+      <div>${list.length ? list.map(i=>`
+        <div class="list-item">
+          <div class="meta">
+            <div class="pn">${i.pn}</div>
+            <div class="sub">${i.shift} • ${i.family||''}</div>
+          </div>
+          <button class="toggle ${i.exported?'on':''}" data-id="${i.id}"><span class="dot"></span></button>
+        </div>`).join('') : `<div class="empty"><div class="ic">↗</div>Aucun PN</div>`}
+      </div>
+    </div>`;
+    document.getElementById('exp-search').addEventListener('input', (e)=>{ exportSearch = e.target.value; renderExport(); });
+    document.querySelectorAll('.toggle').forEach(t=> t.addEventListener('click', async ()=>{
+      const it = state.items[t.dataset.id];
+      it.exported = !it.exported;
+      await saveState();
+      renderExport();
+    }));
+  } else {
+    const list = itemsArr().filter(i=>i.exported).sort((a,b)=>a.pn.localeCompare(b.pn));
+    body.innerHTML = `<div class="card">
+      <h2>PN marqués export (${list.length})</h2>
+      <p class="hint">${list.length ? '' : "Aucun part number n'est encore marqué pour l'export."}</p>
+      ${list.map(i=>{
+        const st = statusOf(i);
+        return `<div class="status-line ${st}" style="margin-bottom:8px">
+          <div>
+            <div class="pn">${i.pn}</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px">${i.shift} • ${i.family||''}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="qty">${i.delivered}/${i.planningQty}</div>
+            <span class="badge ${st}">${statusLabel(st)}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+}
+
+/* ---------- DASHBOARD TAB ---------- */
+let dashMetric = 'produced'; // 'produced' | 'delivered'
+let dashState = { view:'shifts', shift:null, comm:null };
+
+function groupCounts(list, metric){
+  const c = { open:0, progress:0, closed:0, noplan:0 };
+  list.forEach(i=> c[statusOf(i,metric)]++);
+  return c;
+}
+function bars(c, total){
+  const pct = n => total ? (n/total*100) : 0;
+  return `<div class="bar-track">
+    <div class="bar-seg closed" style="width:${pct(c.closed)}%"></div>
+    <div class="bar-seg progress" style="width:${pct(c.progress)}%"></div>
+    <div class="bar-seg open" style="width:${pct(c.open+c.noplan)}%"></div>
+  </div>`;
+}
+
+function renderDash(){
+  const all = itemsArr();
+  const metricLabel = dashMetric==='produced' ? 'Production' : 'Livraison (scan)';
+
+  main.innerHTML = `
+    <div class="segmented">
+      <button data-m="produced" class="${dashMetric==='produced'?'active':''}">Production</button>
+      <button data-m="delivered" class="${dashMetric==='delivered'?'active':''}">Livraison (scan)</button>
+    </div>
+    <div id="dash-body"></div>
+  `;
+  document.querySelectorAll('.segmented button').forEach(b=> b.addEventListener('click', ()=>{
+    dashMetric = b.dataset.m; dashState = { view:'shifts', shift:null, comm:null }; renderDash();
+  }));
+
+  const body = document.getElementById('dash-body');
+
+  if(dashState.view==='shifts'){
+    const shifts = shiftsList();
+    const counts = groupCounts(all, dashMetric);
+    body.innerHTML = `
+      <div class="card">
+        <h2>Vue d'ensemble — ${metricLabel}</h2>
+        <div class="kpi-grid">
+          <div class="kpi open"><div class="n">${counts.open+counts.noplan}</div><div class="l">Ouverts</div></div>
+          <div class="kpi progress"><div class="n">${counts.progress}</div><div class="l">En cours</div></div>
+          <div class="kpi closed"><div class="n">${counts.closed}</div><div class="l">Fermés</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Par shift — toucher pour détailler par COMM</h2>
+        ${shifts.length ? shifts.map(s=>{
+          const its = all.filter(i=>i.shift===s);
+          const c = groupCounts(its, dashMetric);
+          return `<div class="drill-row" data-shift="${s}">
+            <div style="flex:1">
+              <div class="t">${s}</div>
+              <div class="s">${c.closed}/${its.length} fermés</div>
+              ${bars(c, its.length)}
+            </div>
+            <span class="arrow">›</span>
+          </div>`;
+        }).join('') : `<div class="empty"><div class="ic">◔</div>Importez un planning pour voir les statistiques</div>`}
+      </div>
+      <div class="card">
+        <h2>Résumé quantités</h2>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="n">${all.reduce((a,i)=>a+i.planningQty,0)}</div><div class="l">Planifié</div></div>
+          <div class="kpi"><div class="n">${all.reduce((a,i)=>a+(i.produced||0),0)}</div><div class="l">Produit</div></div>
+          <div class="kpi"><div class="n">${all.reduce((a,i)=>a+i.delivered,0)}</div><div class="l">Livré</div></div>
+        </div>
+      </div>
+    `;
+    body.querySelectorAll('.drill-row').forEach(r=> r.addEventListener('click', ()=>{
+      dashState = { view:'comms', shift:r.dataset.shift, comm:null }; renderDash();
+    }));
+
+  } else if(dashState.view==='comms'){
+    const its = all.filter(i=>i.shift===dashState.shift);
+    const commsHere = Array.from(new Set(its.map(i=>i.family||'Sans famille'))).sort();
+    body.innerHTML = `
+      <button class="back-link" id="back-shifts">‹ Shifts</button>
+      <div class="card">
+        <h2>${dashState.shift} — ${metricLabel}</h2>
+        <p class="hint">Familles (COMM) travaillées sur ce shift. Touchez une famille pour voir le détail par Part Number.</p>
+        ${commsHere.length ? commsHere.map(cm=>{
+          const sub = its.filter(i=>(i.family||'Sans famille')===cm);
+          const c = groupCounts(sub, dashMetric);
+          return `<div class="drill-row" data-comm="${cm}">
+            <div style="flex:1">
+              <div class="t">${cm}</div>
+              <div class="s">${c.closed}/${sub.length} fermés • ${sub.length} PN</div>
+              ${bars(c, sub.length)}
+            </div>
+            <span class="arrow">›</span>
+          </div>`;
+        }).join('') : `<div class="empty"><div class="ic">◔</div>Aucune donnée pour ce shift</div>`}
+      </div>
+    `;
+    document.getElementById('back-shifts').addEventListener('click', ()=>{ dashState={view:'shifts',shift:null,comm:null}; renderDash(); });
+    body.querySelectorAll('.drill-row').forEach(r=> r.addEventListener('click', ()=>{
+      dashState.view='pns'; dashState.comm = r.dataset.comm; renderDash();
+    }));
+
+  } else if(dashState.view==='pns'){
+    const its = all.filter(i=> i.shift===dashState.shift && (i.family||'Sans famille')===dashState.comm)
+                    .sort((a,b)=>a.pn.localeCompare(b.pn));
+    body.innerHTML = `
+      <button class="back-link" id="back-comms">‹ ${dashState.shift} — familles</button>
+      <div class="card">
+        <h2>${dashState.shift} • ${dashState.comm} — ${metricLabel}</h2>
+        <p class="hint">${its.length} Part Number travaillés pour cette famille sur ce shift.</p>
+      </div>
+      <div class="card" style="padding:8px 12px">
+        ${its.map(i=>{
+          const st = statusOf(i, dashMetric);
+          const val = dashMetric==='produced' ? (i.produced||0) : i.delivered;
+          return `<div class="status-line ${st}" style="margin-bottom:8px">
+            <div>
+              <div class="pn">${i.pn}</div>
+              <div style="font-size:11px;color:var(--sub);margin-top:2px">${i.description||''}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="qty">${val}${i.planningQty?'/'+i.planningQty:''}</div>
+              <span class="badge ${st}">${statusLabel(st)}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+    document.getElementById('back-comms').addEventListener('click', ()=>{ dashState.view='comms'; dashState.comm=null; renderDash(); });
+  }
+}
+
+/* ===================== INIT ===================== */
+(async function init(){
+  await loadState();
+  render();
+})();
+</script>
+</body>
+</html>
